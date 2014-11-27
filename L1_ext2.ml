@@ -37,10 +37,19 @@ type termo
  | Let  of string * tipo * termo * termo
    (*let rec f:T->T’ = fun x:T => e1 in e2 *)
  | LetR of string * tipo * termo * termo
-   (* exceç*)
- | Empty
+   (* Lista vazia *)
+ | Nil
+   (* e1 :: e2 ;; prefixa e1 à lista e2 *)
  | Cons of termo * termo
- | Raise ;; 
+   (* hd e ;; primeiro elemento da lista e (head) *)
+ | Hd of termo
+   (* lt e ;; restante da lista e (tail) *)
+ | Tl of termo
+   (* lançamento de exceção *)
+ | Raise
+   (* try e1 with e2 ;; tratamento de exceção *)
+ | Try of termo * termo
+ ;; 
 
 let ambienteVazio = ( [] : (string * tipo) list ) ;;
 exception NoRuleApplies ;;
@@ -98,7 +107,7 @@ let rec tipoDe e a = match e with
         if lt = TList t || lt = TList T
           then TList t
           else raise TypeError
-  | Empty -> TList T
+  | Nil -> TList T
   | _ -> raise NoRuleApplies;;
 
 
@@ -183,7 +192,7 @@ int foo(int x)
 }
 main() { foo(5); }
 
-tipoDe (Cons(Num 0, Empty)) ambienteVazio ;;
+tipoDe (Cons(Num 0, Nil)) ambienteVazio ;;
 
 tipoDe (
 	LetR ( "y" ,  
