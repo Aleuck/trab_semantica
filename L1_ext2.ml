@@ -100,7 +100,7 @@ let rec tipoDe e a = match e with
             TFun(tArg,tRet) -> if (te2 = tArg)
               then tRet
               else raise TypeError
-			| _ -> raise TypeError)
+          | _ -> raise TypeError)
   | Cons(head,tail) -> 
       let t = tipoDe head a in 
       let lt = tipoDe tail a in
@@ -108,6 +108,12 @@ let rec tipoDe e a = match e with
           then TList t
           else raise TypeError
   | Nil -> TList T
+  | Hd(l) -> let tl = tipoDe l a in match tl with
+        TList t -> t
+      | _ -> TypeError ;;
+  | Tl(l) -> let tl = tipoDe l a in match tl with
+        TList t -> tl
+      | _ -> TypeError ;;
   | _ -> raise NoRuleApplies;;
 
 
