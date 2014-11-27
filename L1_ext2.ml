@@ -15,7 +15,7 @@ type tipo
    | TInt                            (* int  *)
    | TFun of tipo * tipo               (* T1 -> T2 *)
    | TList of tipo
-   | T of int ;;                         (* Raise ou empty list *)
+   | T;;                         (* Raise ou empty list *)
 
 
 type termo
@@ -92,6 +92,11 @@ let rec tipoDe e a = match e with
               then tRet
               else raise TypeError
 			| _ -> raise TypeError)
+  | Cons(head,tails) -> 
+      let t1 = tipoDe head a in let lt1 = tipoDe tails a in
+        if lt1 == TList t1 or lt1 == TList T
+          then TList t1
+          else raise TypeError
   | _ -> raise NoRuleApplies;;
 
 
