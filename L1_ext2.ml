@@ -92,11 +92,13 @@ let rec tipoDe e a = match e with
               then tRet
               else raise TypeError
 			| _ -> raise TypeError)
-  | Cons(head,tails) -> 
-      let t1 = tipoDe head a in let lt1 = tipoDe tails a in
-        if lt1 == TList t1 or lt1 == TList T
-          then TList t1
+  | Cons(head,tail) -> 
+      let t = tipoDe head a in 
+      let lt = tipoDe tail a in
+        if lt = TList t || lt = TList T
+          then TList t
           else raise TypeError
+  | Empty -> TList T
   | _ -> raise NoRuleApplies;;
 
 
@@ -180,6 +182,8 @@ int foo(int x)
 	return (x*(x+1))/2;
 }
 main() { foo(5); }
+
+tipoDe (Cons(Num 0, Empty)) ambienteVazio ;;
 
 tipoDe (
 	LetR ( "y" ,  
