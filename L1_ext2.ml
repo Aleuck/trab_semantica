@@ -13,7 +13,10 @@ type op
 type tipo
    = TBool                           (* bool *)
    | TInt                            (* int  *)
-   | TFun of tipo*tipo ;;            (* T1 -> T2 *)
+   | TFun of tipo * tipo               (* T1 -> T2 *)
+   | TList of tipo
+   | T of int ;;                         (* Raise ou empty list *)
+
 
 type termo
    (* n, usando os literais do OCAML *)
@@ -21,19 +24,23 @@ type termo
    (* b, usando os literais do OCAML *)
  | Bool of bool
    (* e1 op e2 *)
- | Op   of op*termo*termo
+ | Op   of op * termo * termo
    (* if e1 then e2 else e3 *)
- | If   of termo*termo*termo
+ | If   of termo * termo * termo
    (* x *)
  | Var  of string
    (* e1 e2 *)
- | App  of termo*termo
+ | App  of termo * termo
    (* fun x:T => e *)
- | Fun  of string*tipo*termo
+ | Fun  of string * tipo * termo
    (* let x:T=e1 in e2 *)
- | Let  of string*tipo*termo*termo
+ | Let  of string * tipo * termo * termo
    (*let rec f:T->T’ = fun x:T => e1 in e2 *)
- | LetR of string*tipo*termo*termo ;; 
+ | LetR of string * tipo * termo * termo
+   (* exceç*)
+ | Empty
+ | Cons of termo * termo
+ | Raise ;; 
 
 let ambienteVazio = ( [] : (string * tipo) list ) ;;
 exception NoRuleApplies ;;
