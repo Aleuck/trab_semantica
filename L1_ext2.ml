@@ -12,11 +12,11 @@ type op
 
 type tipo
    = TBool                           (* bool *)
-   | TInt                            (* int  *)
+   | TInt       (* int  *)
+   | TyId of string
    | TFun of tipo * tipo               (* T1 -> T2 *)
    | TList of tipo
    | T;;                         (* Raise ou empty list *)
-
 
 type termo
    (* n, usando os literais do OCAML *)
@@ -108,12 +108,12 @@ let rec tipoDe e a = match e with
           then TList t
           else raise TypeError
   | Nil -> TList T
-  | Hd(l) -> let tl = tipoDe l a in match tl with
+  | Hd(l) -> let tl = tipoDe l a in (match tl with
         TList t -> t
-      | _ -> TypeError ;;
-  | Tl(l) -> let tl = tipoDe l a in match tl with
+      | _ -> raise TypeError )
+  | Tl(l) -> let tl = tipoDe l a in (match tl with
         TList t -> tl
-      | _ -> TypeError ;;
+      | _ -> raise TypeError)
   | _ -> raise NoRuleApplies;;
 
 
@@ -198,7 +198,7 @@ let rec passo t = match t with
     | Num _ -> e1
     | Bool _ -> e1
     | Fun(_,_,_) -> e1
-    | Cons(_,_,_) -> e1
+    | Cons(_,_) -> e1
     | _ -> Try(passo e1, e2))
   | _ -> raise NoRuleApplies;;
 
@@ -247,3 +247,54 @@ let rec run t = match t with
 | Cons(_,_) -> t
 | Raise -> t
 | _ -> run (passo t) ;;
+
+type nextuvar = NextUVar of string * uvargenerator
+and uvargenerator = unit -> nextuvar;;
+
+let uvargen = 
+  let rec f n () = NextUVar("?X_" ^string_of_int n, f (n+1))
+  in f 0;;
+
+let rec recon ctx nextuvar t  = match t with 
+    Var x -> 
+      let tyT = tipoAmbiente x ctx in 
+      (tyT, nextuvar, [])
+  | Num n ->
+      (TInt, nextuvar, [])
+  | Bool b -> (TBool, nextuvar, [])
+  | If (t1, t2, t3)->
+      let (tyT1, nextuvar1, constr1) = recon ctx nextuvar t1 in
+      let (tyT2, nextuvar2, constr2) = recon ctx nextuvar1 t2 in
+      let (tyT3, nextuvar3, constr3) = recon ctx nextuvar1 t3 in
+      let newconstr = [(tyT1, TBool);(tyT2, tyT3)] in
+      (tyT3, nextuvar3, List.concat[newconstr;constr1;constr2;constr3])
+  | Op(Soma, t1, t2)->
+      let (tyT1, nextuvar1, constr1) = recon ctx nextuvar t1 in
+      let (tyT2, nextuvar2, constr2) = recon ctx nextuvar1 t2 in
+      let newconstr = [(tyT1, TInt);(tyT2, TInt)] in
+      (TInt, nextuvar2, List.concat[newconstr;constr1;constr2])
+  | Op(MaiorIgual, t1, t2)->
+      let (tyT1, nextuvar1, constr1) = recon ctx nextuvar t1 in
+      let (tyT2, nextuvar2, constr2) = recon ctx nextuvar1 t2 in
+      let newconstr = [(tyT1, TInt);(tyT2, TInt)] in
+      (TBool, nextuvar2, List.concat[newconstr;constr1;constr2])
+  | Fun(x, tyT, t1)->
+      let (tyT1, nextuvar1, constr1) = recon ((x , tyT)::ctx) nextuvar t1 in
+      (TFun(tyT , tyT1), nextuvar1 , constr1)
+  | App (t1, t2)->
+      let (tyT1, nextuvar1, constr1) = recon ctx nextuvar t1 in
+      let (tyT2, nextuvar2, constr2) = recon ctx nextuvar1 t2 in
+      let NextUVar (tyX, nextuvar3) = nextuvar2() in
+      let newconstr = [(tyT1, TFun(tyT2, TyId(tyX)))] in
+      (TyId(tyX), nextuvar3, List.concat [newconstr; constr1; constr2])
+  | LetR(f, TFun(tyT, tyS), Fun(x, tyX, t1), t2)->
+      let lista = [(x , TFun(tyT, tyS)) ; (f, TFun(tyT, tyS))] in
+      let (tyT1, nextuvar1, constr1) = recon (List.concat[lista ; ctx]) nextuvar t1 in
+      let (tyT2, nextuvar2, constr2) = recon ((f, TFun(tyT, tyS))::ctx) nextuvar1 t2 in
+      let newconstr = [(tyT, tyX);(tyT1, tyS)] in
+      (tyT2, nextuvar2, List.concat[newconstr;constr1;constr2])
+  | Let(x, tyT, t1, t2)->
+      let (tyT1, nextuvar1, constr1) = recon ctx nextuvar t1 in
+      let (tyT2, nextuvar2, constr2) = recon ((x,tyT)::ctx) nextuvar1 t2 in
+      let newconstr = [(tyT,tyT1)] in
+      (tyT2, nextuvar2, List.concat[newconstr; constr1; constr2]);;
